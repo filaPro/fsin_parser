@@ -1,7 +1,4 @@
 {
     "db_name": "pages.db",
-    "xpath_request": "//div[@class='l-content-holder']",
-    "pages": {
-        "0": "http://18.fsin.su/uchrezdeniya/msch-18/"
-    }
+    "xpath_request": "//div[@class='l-content-holder']"
 }
