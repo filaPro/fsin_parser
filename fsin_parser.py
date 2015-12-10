@@ -7,11 +7,13 @@ from lxml import html
 from lxml.html.diff import htmldiff
 import HTMLParser
 from datetime import datetime
+import time
+import threading
 
 class WebApplication:
     def __init__(self):
-        self.fsin_parser = FsinParser()
         self.app = flask.Flask(__name__, static_url_path = '')
+        self.fsin_parser = FsinParser()
 
         @self.app.route('/js/<path:path>')
         def send_js(path):
@@ -48,7 +50,10 @@ class WebApplication:
         def get_update_by_id_and_dates():
             ans = self.fsin_parser.get_update_by_id_and_dates(int(flask.request.form['id']), flask.request.form['date_begin'], flask.request.form['date_end']) 
             return ans
-    
+
+        d = threading.Thread(name='daemon', target=self.fsin_parser.update_pages_history)
+        d.setDaemon(True)
+
     def run(self):
         self.app.run()
 
@@ -58,7 +63,7 @@ class FsinParser:
         with open(self.json_name, 'r') as f:
             self.json = json.load(f)
             f.close()
-        self.db = lite.connect(self.json['db_name'])
+        self.db = lite.connect(self.json['db_name'], check_same_thread = False)
         self.db.text_factory = str
         self.cursor = self.db.cursor()
         try:
@@ -68,12 +73,21 @@ class FsinParser:
             print '__init__: SQL Error'
         self.pages_list = self.get_pages_list()
 
+    def thread_function(self):
+        while True:
+            self.update_pages_history()
+            time.sleep(6000)
+
+    def __del__(self):
+        if (self.db):
+            self.db.close()
+
     def get_pages_list(self):
         try:
             self.cursor.execute("SELECT * FROM PAGES_LIST")
             return self.cursor.fetchall()
         except:
-            print ': SQL Error'
+            print 'get_pages_list: SQL Error'
 
     def put_url_to_pages_list(self, url):
         try:
@@ -101,13 +115,12 @@ class FsinParser:
             info = tree.xpath(self.json['xpath_request'])[0]
             return HTMLParser.HTMLParser().unescape(html.tostring(info)).encode('utf-8')
         except:
-            print ': SQL Error'
+            print ': Error'
      
     def update_pages_history(self):
-        try:
-            self.pages_list = self.get_pages_list()
-            print self.pages_list
-            for page in self.pages_list:
+        self.pages_list = self.get_pages_list()
+        for page in self.pages_list:
+            try:
                 page_id = page[0]
                 new_page = self.get_page_from_internet(page[1])
                 self.cursor.execute("SELECT * FROM PAGES_HISTORY WHERE Id=? ORDER BY datetime(Datetime) DESC LIMIT 1", (page_id,))
@@ -115,8 +128,8 @@ class FsinParser:
                 if len(old_page_entry) == 0 or (len(old_page_entry) != 0 and old_page_entry[0][1] != new_page):
                     self.cursor.execute("INSERT INTO PAGES_HISTORY VALUES(?, ?, ?)", (page_id, new_page, datetime.now()))
                     self.db.commit()
-        except:
-            print ': SQL Error'
+            except:
+                print ': SQL Error'
     
     def get_updates(self, date_begin, date_end):
         self.cursor.execute("SELECT Id FROM PAGES_HISTORY WHERE Datetime BETWEEN ? AND ? ORDER BY Id", 
