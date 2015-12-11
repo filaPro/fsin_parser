@@ -4,13 +4,21 @@
     <title>сайт</title>
     <script src="js/jquery-2.1.4.min.js" type="text/javascript"></script>
     <script src="js/1.js" type="text/javascript"></script>
+    <style>
+        #url_list/td  {
+            max-width: 500px;
+        }
+        #add_url_input {
+            width: 500px;
+        }
+    </style>
 </head>
 <body>
-    <div>date_begin:<input id="date_begin" value="15.01.05"></div>
-    <div>date_end:<input id="date_end" value="15.01.20"></div>
-    <button id="get_updates">get updates</button>
-    <div><button id="url_button">get</button> list of links</button>
-    <div id="url_list"></div>
-
+    <div id="normal_body">
+        <div style="margin-bottom: 5px">Дата начала интересующего промежутка времени: <input id="date_begin" value="15.01.05"></div>
+        <div style="margin-bottom: 5px">Дата окончания интересующего промежутка времени: <input id="date_end" value="15.01.20"></div>
+        <button id="get_updates">Получить обновления</button>
+        <table id="url_list" style="margin-top:30px"></table>
+    </div>
 </body>
 </html>
