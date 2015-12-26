@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 # coding: utf-8
+
 import flask
 import simplejson as json
 import sqlite3 as lite
@@ -67,10 +69,22 @@ class FsinParser:
         self.db.text_factory = str
         self.cursor = self.db.cursor()
         try:
-            self.cursor.executescript("CREATE TABLE IF NOT EXISTS PAGES_HISTORY(Id INT, Info STRING, Datetime DATETIME);")
-            self.cursor.executescript("CREATE TABLE IF NOT EXISTS PAGES_LIST(Id INT, Url STRING);")
-        except:
-            print '__init__: SQL Error'
+            self.cursor.executescript("""
+                CREATE TABLE IF NOT EXISTS PAGES_HISTORY (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Page INT,
+                    Data STRING,
+                    Time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    Readed BOOL DEFAULT FALSE
+                );""")
+            self.cursor.executescript("""
+                CREATE TABLE IF NOT EXISTS PAGES_LIST (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Url STRING NOT NULL,
+                    LastUpdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );""")
+        except lite.Error as e:
+            print '__init__: SQL Error', e
         self.pages_list = self.get_pages_list()
 
     def thread_function(self):
@@ -84,29 +98,25 @@ class FsinParser:
 
     def get_pages_list(self):
         try:
-            self.cursor.execute("SELECT * FROM PAGES_LIST")
-            return self.cursor.fetchall()
-        except:
-            print 'get_pages_list: SQL Error'
+            self.cursor.execute("SELECT Id, Url, LastUpdate FROM PAGES_LIST")
+            res = [{"id": x[0], "url": x[1], "last_update": x[2]} for x in self.cursor.fetchall()]
+            return res
+        except lite.Error as e:
+            print 'get_pages_list: SQL Error', e
 
     def put_url_to_pages_list(self, url):
         try:
-            max_id = -1
-            for page in self.pages_list:
-                if (page[0] > max_id):
-                    max_id = page[0]
-            max_id += 1
-            self.cursor.execute("INSERT INTO PAGES_LIST VALUES(?, ?)", (max_id, url))
+            self.cursor.execute("INSERT INTO PAGES_LIST (Url) VALUES(?)", (url,))
             self.db.commit()
-        except:
-            print ': SQL Error'
+        except lite.Error as e:
+            print ': SQL Error', e
 
     def delete_url_from_pages_list(self, url_id):
         try:
             self.cursor.execute("DELETE FROM PAGES_LIST WHERE Id=?", (url_id,))
             self.db.commit()
-        except:
-            print ': SQL Error'
+        except lite.Error as e:
+            print ': SQL Error', e
 
     def get_page_from_internet(self, url):
         try:
@@ -114,8 +124,8 @@ class FsinParser:
             tree = html.document_fromstring(page.content)
             info = tree.xpath(self.json['xpath_request'])[0]
             return HTMLParser.HTMLParser().unescape(html.tostring(info)).encode('utf-8')
-        except:
-            print ': Error'
+        except Exception as e:
+            print 'parser: Error', e
      
     def update_pages_history(self):
         self.pages_list = self.get_pages_list()
@@ -123,32 +133,47 @@ class FsinParser:
             try:
                 page_id = page[0]
                 new_page = self.get_page_from_internet(page[1])
-                self.cursor.execute("SELECT * FROM PAGES_HISTORY WHERE Id=? ORDER BY datetime(Datetime) DESC LIMIT 1", (page_id,))
+                self.cursor.execute("SELECT Id, Data FROM PAGES_HISTORY WHERE Page=? ORDER BY datetime(Time) DESC LIMIT 1", (page_id,))
                 old_page_entry = self.cursor.fetchall()
                 if len(old_page_entry) == 0 or (len(old_page_entry) != 0 and old_page_entry[0][1] != new_page):
-                    self.cursor.execute("INSERT INTO PAGES_HISTORY VALUES(?, ?, ?)", (page_id, new_page, datetime.now()))
+                    self.cursor.execute("INSERT INTO PAGES_HISTORY (Page, Data) VALUES(?, ?)", (page_id, new_page))
                     self.db.commit()
-            except:
-                print ': SQL Error'
+            except lite.Error as e:
+                print ': SQL Error', e
     
     def get_updates(self, date_begin, date_end):
-        self.cursor.execute("SELECT Id FROM PAGES_HISTORY WHERE Datetime BETWEEN ? AND ? ORDER BY Id", 
-                            (datetime.strptime(date_begin, '%d.%m.%y'), datetime.strptime(date_end, '%d.%m.%y')))
-        id_list = self.cursor.fetchall()
-        cur_id = 0
-        ans = []
-        for i in xrange(1, len(id_list)):
-            if id_list[i][0] == id_list[i - 1][0] and id_list[i][0] > cur_id:
-                ans.append(id_list[i][0])
-                cur = id_list[i][0]
+        try:
+            self.cursor.execute("SELECT Id, Page, Time, Readed FROM PAGES_HISTORY WHERE Page IN (SELECT DISTINCT Page FROM PAGES_HISTORY WHERE ?) ORDER BY Page", 
+                                (self.make_between_dates(date_begin, date_end),))
+            id_list = self.cursor.fetchall()
+            ans = [{"id": x[0], "page": x[1], "time": x[2], "readed": x[3]} for x in id_list]
+        except lite.Error as e:
+            print "SQL error", e
         return ans
     
     def get_update_by_id_and_dates(self, url_id, date_begin, date_end):
-        self.cursor.execute("SELECT * FROM PAGES_HISTORY WHERE (Datetime BETWEEN ? AND ?) AND (Id=?) ORDER BY Id", 
-                            (datetime.strptime(date_begin, '%d.%m.%y'), datetime.strptime(date_end, '%d.%m.%y'), url_id))
+        t = self.make_between_dates(date_begin, date_end)
+        self.cursor.execute("SELECT * FROM PAGES_HISTORY WHERE ? AND (Page=?) ORDER BY Id", 
+                            (t, url_id))
         entries = self.cursor.fetchall()
         diff = self.get_diff_of_pages(entries[0][1], entries[-1][1])
         return diff
+
+    def make_between_dates(self, date_begin, date_end):
+        # dates if not nil must be in format 'YYYY-MM-DD HH:MM:SS[.mmmmmm]' - [] means that milliseconds may be ommited
+        try:
+            date_begin = date_begin.strip()
+            date_end = date_end.strip()
+            if date_begin == "" and date_end == "":
+                return "1"
+            if date_begin == "" or date_end == "":
+                return "(Time > %s)" % (date_begin+date_end)
+            if date_begin < date_end:
+                date_begin, date_end = date_end, date_begin
+            return "(Time BETWEEN %s AND %s)" % (date_begin, date_end)
+        except Exception as e:
+            print "ERR", e
+            return "1"
         
     def get_diff_of_pages(self, page1, page2):
         diff = HTMLParser.HTMLParser().unescape(htmldiff(page1.decode('utf-8'), page2.decode('utf-8')).encode('utf-8'))

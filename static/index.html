@@ -5,7 +5,7 @@
     <script src="js/jquery-2.1.4.min.js" type="text/javascript"></script>
     <script src="js/1.js" type="text/javascript"></script>
     <style>
-        #url_list/td  {
+        #url_list td  {
             max-width: 500px;
         }
         #add_url_input {
@@ -15,9 +15,12 @@
 </head>
 <body>
     <div id="normal_body">
-        <div style="margin-bottom: 5px">Дата начала интересующего промежутка времени: <input id="date_begin" value="15.01.05"></div>
-        <div style="margin-bottom: 5px">Дата окончания интересующего промежутка времени: <input id="date_end" value="15.01.20"></div>
-        <button id="get_updates">Получить обновления</button>
+		Выберите промежуток дат, за который хотите видеть обновления
+		<div style="margin-bottom: 5px">
+			<input id="date_begin" value="" type=date>
+			- <input id="date_end" value="" type=date>
+		</div>
+		<button id="get_updates">Показать обновления</button>
         <table id="url_list" style="margin-top:30px"></table>
     </div>
 </body>
