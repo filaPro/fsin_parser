@@ -7,9 +7,11 @@ $(document).ready(function() {
         $('#url_list').append('<tr><td></td><td><input id="add_url_input" style="float:left; margin-right:10px"></td>' +
             '<td><button id="add_url_button" style="float:left; margin-right:10px">Добавить ссылку</button></td></tr>')
         for (var i = 0; i < data.length; ++i) {
-            $('#url_list').append('<tr><td style="float:left; margin-right:10px">' + data[i][0] + '</td><td style="float:left; margin-right:10px">' 
-                + data[i][1] + '</td><td><button id="delete_url" style="margin-right:10px" param="' + data[i][0] + '">Удалить ссылку</button></td>' +
-                '<td><div id="update_status' + data[i][0] + '" class="show_update" param="' + data[i][0] + '" updates="no">Обновлений нет</div></td></tr>')
+            $('#url_list').append('<tr><td style="float:left; margin-right:10px">' + (1+i) + '</td>'+
+					'<td style="float:left; margin-right:10px">'+
+						'<a target=_blank href="'+data[i].url+'">'+ data[i].url + '</a>' +
+					'</td><td><button id="delete_url" style="margin-right:10px" param="' + data[i].id + '">Удалить ссылку</button></td>' +
+					'<td><div id="update_status' + data[i].id + '" class="show_update" param="' + data[i].id + '" updates="no">Обновлений нет</div></td></tr>')
         }
     })
     $('#get_updates').click()
@@ -26,7 +28,9 @@ $(document).on('click', '#get_updates', function() {
     $.post('/get_updates', {'date_begin': $('#date_begin').val(), 'date_end': $('#date_end').val()}, function(data) {
         data = JSON.parse(data)
         for (i in data) {
-            $('#update_status' + data[i]).html('<a style="text-decoration: underline; cursor: default">Обновления</a> есть').attr('updates', 'yes')
+            var ln = $('#update_status' + data[i].page)
+			ln.html('<a style="text-decoration: underline; cursor: default">Обновления</a> есть').attr('updates', 'yes')
+			// TODO(nikandfor): highlight line if data[i].readed is false
         }
     })
 })
@@ -37,7 +41,7 @@ $(document).on('click', '.show_update', function() {
         $.post('/get_update_by_id_and_dates', {'id': $(this).attr('param'), 'date_begin': $('#date_begin').val(), 'date_end': $('#date_end').val()}, function(data){
             $('#diff_data').remove()
             $('#normal_body').hide()
-            $('body').append('<div id="diff_data" style="position:relative; z-index:999; max-width:1000px; border: 1px solid grey">' + 
+            $('body').append('<div id="diff_data" style="position:relative; z-index:999; max-width:1000px; border: 1px solid grey; margin: auto;">' + 
                 '<button style="float:right" id="diff_close">X</button>' + data + '</div>')
         })
 })
