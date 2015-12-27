@@ -14,7 +14,7 @@ $(document).ready(function() {
 					'<td><div id="update_status' + data[i].id + '" class="show_update" param="' + data[i].id + '" updates="no">Обновлений нет</div></td></tr>')
         }
     })
-    $('#get_updates').click()
+    // $('#get_updates').click()
 })
 
 $(document).on('click', '#delete_url', function() {
@@ -25,12 +25,19 @@ $(document).on('click', '#delete_url', function() {
 })
 
 $(document).on('click', '#get_updates', function() {
+    if ($('#date_begin').val() == '' && $('#date_end').val() == '') {
+        alert('Даты введены некорректно.')
+        return
+    }
+    console.log('clicked')
     $.post('/get_updates', {'date_begin': $('#date_begin').val(), 'date_end': $('#date_end').val()}, function(data) {
         data = JSON.parse(data)
+        console.log(data)
         for (i in data) {
             var ln = $('#update_status' + data[i].page)
 			ln.html('<a style="text-decoration: underline; cursor: default">Обновления</a> есть').attr('updates', 'yes')
-			// TODO(nikandfor): highlight line if data[i].readed is false
+            if (data[i].readed == 'FALSE')
+                ln.css('background-color', '#7FFF00');
         }
     })
 })
@@ -38,12 +45,15 @@ $(document).on('click', '#get_updates', function() {
 $(document).on('click', '.show_update', function() {
     console.log('clicked')
     if ($(this).attr('updates') == 'yes')
-        $.post('/get_update_by_id_and_dates', {'id': $(this).attr('param'), 'date_begin': $('#date_begin').val(), 'date_end': $('#date_end').val()}, function(data){
+        console.log($(this).css('background-color'))
+        $(this).css('background-color', 'white')
+        $.post('/get_update_by_id_and_dates', {'id': $(this).attr('param'), 'date_begin': $('#date_begin').val(), 'date_end': $('#date_end').val()}, function(data) {
             $('#diff_data').remove()
             $('#normal_body').hide()
             $('body').append('<div id="diff_data" style="position:relative; z-index:999; max-width:1000px; border: 1px solid grey; margin: auto;">' + 
                 '<button style="float:right" id="diff_close">X</button>' + data + '</div>')
         })
+        $.post('/set_readed', {'id': $(this).attr('param')})
 })
 
 $(document).on('click', '#diff_close', function() {
@@ -63,3 +73,8 @@ $(document).on('click', '#add_url_button', function() {
     window.location.reload()
 })
 
+$(document).on('click', '#get_status_string', function() {
+    $.post('/get_status_string', {}, function(data) {
+        $('#status_div').html(data)
+    })
+})
