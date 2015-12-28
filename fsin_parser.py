@@ -149,7 +149,7 @@ class FsinParser:
                 if len(old_page_entry) == 0 or (len(old_page_entry) != 0 and old_page_entry[0][1] != new_page):
                     self.cursor.execute("INSERT INTO PAGES_HISTORY (Page, Data) VALUES(?, ?)", (page_id, new_page))
                     self.db.commit()
-                self.status_string = 'ссылка ' + page['url'] + ' просканирована ' + str(datetime.now())
+		self.status_string = 'Последняя ссылка просканирована ' + str(datetime.now()) + ' (' + page['url'] + ')'
             except lite.Error as e:
                 print ': SQL Error', e
     
