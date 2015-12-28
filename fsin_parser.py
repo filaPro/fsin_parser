@@ -67,7 +67,7 @@ class WebApplication:
         d.start()
 
     def run(self):
-        self.app.run()
+        self.app.run(host = '0.0.0.0')
 
 class FsinParser:
     def __init__(self):
@@ -101,7 +101,7 @@ class FsinParser:
     def thread_function(self):
         while True:
             self.update_pages_history()
-            time.sleep(6)
+            time.sleep(3600)
 
     def __del__(self):
         if (self.db):
@@ -159,7 +159,7 @@ class FsinParser:
         try:
             #self.cursor.execute("SELECT Id, Page, Time, Readed FROM PAGES_HISTORY WHERE ? ORDER BY Page", 
             #                    (self.make_between_dates(date_begin, date_end),))
-            self.cursor.execute("SELECT Id, Page, Time, Readed FROM PAGES_HISTORY WHERE " + t + " ORDER BY Page") 
+            self.cursor.execute("SELECT Id, Page, Time, Readed FROM PAGES_HISTORY WHERE " + t + " ORDER BY Readed, Time DESC") 
 
             id_list = self.cursor.fetchall()
             print id_list
