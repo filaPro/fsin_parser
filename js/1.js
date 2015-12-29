@@ -46,8 +46,7 @@ $(document).on('click', '#get_updates', function() {
 
 $(document).on('click', '.show_update', function() {
     console.log('clicked')
-    if ($(this).attr('updates') == 'yes')
-        console.log($(this).css('background-color'))
+    if ($(this).attr('updates') == 'yes') {
         $(this).css('background-color', 'white')
         $.post('/get_update_by_id_and_dates', {'id': $(this).attr('param'), 'date_begin': $('#date_begin').val(), 'date_end': $('#date_end').val()}, function(data) {
             $('#diff_data').remove()
@@ -56,6 +55,7 @@ $(document).on('click', '.show_update', function() {
                 '<button style="float:right" id="diff_close">X</button>' + data + '</div>')
         })
         $.post('/set_readed', {'id': $(this).attr('param')})
+    }  
 })
 
 $(document).on('click', '#diff_close', function() {
