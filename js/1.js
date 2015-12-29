@@ -71,7 +71,9 @@ $(document).on('click', '#add_url_button', function() {
     if (urlregex.test(url))
         $.post('/add_url', {'url': url}, function(data){
             console.log(data)
-        })    
+        })
+    else
+        alert('Ссылка введена некоррректно.')
     window.location.reload()
 })
 
