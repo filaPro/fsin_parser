@@ -14,7 +14,9 @@ $(document).ready(function() {
 					'<td><div id="update_status' + data[i].id + '" class="show_update" param="' + data[i].id + '" updates="no">Обновлений нет</div></td></tr>')
         }
     })
-    // $('#get_updates').click()
+    $('#date_begin').val('2010-01-01')
+    $('#date_end').val('2020-01-01')
+    $('#get_updates').click()
 })
 
 $(document).on('click', '#delete_url', function() {
@@ -35,7 +37,7 @@ $(document).on('click', '#get_updates', function() {
         console.log(data)
         for (i in data) {
             var ln = $('#update_status' + data[i].page)
-			ln.html('<a style="text-decoration: underline; cursor: default">Обновления</a> есть').attr('updates', 'yes')
+			ln.html('<a style="text-decoration: underline; cursor: pointer">Обновления</a> есть').attr('updates', 'yes')
             if (data[i].readed == 'FALSE')
                 ln.css('background-color', '#7FFF00');
         }

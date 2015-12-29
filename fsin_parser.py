@@ -78,7 +78,7 @@ class FsinParser:
         self.db = lite.connect(self.json['db_name'], check_same_thread = False)
         self.db.text_factory = str
         self.cursor = self.db.cursor()
-        self.status_string = 'сканирование запущено'
+        self.status_string = '__init__'
         try:
             self.cursor.executescript("""
                 CREATE TABLE IF NOT EXISTS PAGES_HISTORY (
@@ -95,39 +95,49 @@ class FsinParser:
                     LastUpdate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );""")
         except lite.Error as e:
-            print '__init__: SQL Error', e
+            self.log('__init__: SQL Error ' + str(e))
         self.pages_list = self.get_pages_list()
 
     def thread_function(self):
         while True:
+            self.log('clear')
+            self.log('updating started')
             self.update_pages_history()
+            self.log('updating finished')
             time.sleep(3600)
 
     def __del__(self):
         if (self.db):
             self.db.close()
 
+    def log(self, msg):
+        if msg == 'clear':
+            self.status_string = ''
+        else:
+	    self.status_string += str(datetime.now()) + ' : ' + msg + '<br>'
+            
+
     def get_pages_list(self):
         try:
             self.cursor.execute("SELECT Id, Url, LastUpdate FROM PAGES_LIST")
-            res = [{"id": x[0], "url": x[1], "last_update": x[2]} for x in self.cursor.fetchall()]
+            res = [{'id': x[0], 'url': x[1], 'last_update': x[2]} for x in self.cursor.fetchall()]
             return res
         except lite.Error as e:
-            print 'get_pages_list: SQL Error', e
+            self.log('get_pages_list: SQL Error ' + str(e))
 
     def put_url_to_pages_list(self, url):
         try:
             self.cursor.execute("INSERT INTO PAGES_LIST (Url) VALUES(?)", (url,))
             self.db.commit()
         except lite.Error as e:
-            print ': SQL Error', e
+            self.log('put_url_to_pages_list: SQL Error ' + str(e))
 
     def delete_url_from_pages_list(self, url_id):
         try:
             self.cursor.execute("DELETE FROM PAGES_LIST WHERE Id=?", (url_id,))
             self.db.commit()
         except lite.Error as e:
-            print ': SQL Error', e
+            self.log('delete_url_from_pages_list: SQL Error ' + str(e))
 
     def get_page_from_internet(self, url):
         try:
@@ -136,7 +146,7 @@ class FsinParser:
             info = tree.xpath(self.json['xpath_request'])[0]
             return HTMLParser.HTMLParser().unescape(html.tostring(info)).encode('utf-8')
         except Exception as e:
-            print 'parser: Error', e
+            self.log('get_page_from_internet: Internet or Parse Error ' + str(e))
      
     def update_pages_history(self):
         self.pages_list = self.get_pages_list()
@@ -149,24 +159,19 @@ class FsinParser:
                 if len(old_page_entry) == 0 or (len(old_page_entry) != 0 and old_page_entry[0][1] != new_page):
                     self.cursor.execute("INSERT INTO PAGES_HISTORY (Page, Data) VALUES(?, ?)", (page_id, new_page))
                     self.db.commit()
-		self.status_string = 'Последняя ссылка просканирована ' + str(datetime.now()) + ' (' + page['url'] + ')'
             except lite.Error as e:
-                print ': SQL Error', e
+                self.log('update_pages_history: SQL Error ' + str(e))
     
     def get_updates(self, date_begin, date_end):
         t = self.make_between_dates(date_begin, date_end)
-        print t
         try:
-            #self.cursor.execute("SELECT Id, Page, Time, Readed FROM PAGES_HISTORY WHERE ? ORDER BY Page", 
-            #                    (self.make_between_dates(date_begin, date_end),))
             self.cursor.execute("SELECT Id, Page, Time, Readed FROM PAGES_HISTORY WHERE " + t + " ORDER BY Readed, Time DESC") 
 
             id_list = self.cursor.fetchall()
-            print id_list
-            ans = [{"id": x[0], "page": x[1], "time": x[2], "readed": x[3]} for x in id_list]
+            ans = [{'id': x[0], 'page': x[1], 'time': x[2], 'readed': x[3]} for x in id_list]
             return ans
         except lite.Error as e:
-            print "SQL error", e
+            self.log('get_updates: SQL error ' + str(e))
     
     def get_update_by_id_and_dates(self, url_id, date_begin, date_end):
         try:
@@ -177,7 +182,7 @@ class FsinParser:
             diff = self.get_diff_of_pages(entries[0][2], entries[-1][2])
             return diff
         except Exception as e:
-            print "SQL Error", e
+            self.log('get_update_by_id_and_dates: SQL Error ' + str(e))
 
 
     def make_between_dates(self, date_begin, date_end):
@@ -193,7 +198,7 @@ class FsinParser:
                 date_begin, date_end = date_end, date_begin
             return "(Time BETWEEN '%s' AND '%s')" % (date_begin, date_end)
         except Exception as e:
-            print "ERR", e
+            self.log('make_between_dates: SQL Error ' + str(e))
             return "1"
 
     def set_readed(self, url_id):
@@ -201,13 +206,16 @@ class FsinParser:
             self.cursor.execute("UPDATE PAGES_HISTORY SET Readed='TRUE' WHERE Page=?", (url_id,))
             self.db.commit()
         except Exception as e:
-               print "SQL Error", e
+            self.log('set_readed: SQL Error ' + str(e))
 
     def get_diff_of_pages(self, page1, page2):
-        diff = HTMLParser.HTMLParser().unescape(htmldiff(page1.decode('utf-8'), page2.decode('utf-8')).encode('utf-8'))
-        diff = diff.replace('<del>', '<del style="color:red">')
-        diff = diff.replace('<ins>', '<ins style="color:green">')
-        return HTMLParser.HTMLParser().unescape(diff)
+        try:
+            diff = HTMLParser.HTMLParser().unescape(htmldiff(page1.decode('utf-8'), page2.decode('utf-8')).encode('utf-8'))
+            diff = diff.replace('<del>', '<del style="color:red">')
+            diff = diff.replace('<ins>', '<ins style="color:green">')
+            return HTMLParser.HTMLParser().unescape(diff)
+        except Exception as e:
+            self.log('get_diff_of_pages: HTML Error ' + str(e))
     
     def finish(self):
         if (self.db):

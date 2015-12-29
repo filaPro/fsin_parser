@@ -20,10 +20,15 @@
 			<input id="date_begin" value="" type=date>
 			- <input id="date_end" value="" type=date>
 		</div>
-		<button id="get_updates" style="float:left">Показать обновления</button>
-        <button id="get_status_string" style="float:left; margin-left:50px">Запросить статус сканирования</button>
-        <div id="status_div" style="float:left; margin-left:5px"></div>
-        <table id="url_list" style="margin-top:30px"></table>
+        <div style="float:none; position:absolute; margin-bottom:20px">
+		    <button id="get_updates" style="float:left">Показать обновления</button>
+            <button id="get_status_string" style="float:left; margin-left:50px; margin-bottom:20px">Запросить статус сканирования</button>
+        
+            <div id="status_div" style="float:left; margin-left:5px; margin-bottom:20px"></div>
+        <div style="margin-top:20px; ">
+            <table id="url_list"></table>
+        </div>
+        </div>
     </div>
 </body>
 </html>
