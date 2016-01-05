@@ -1,4 +1,4 @@
 {
-    "db_name": "pages.db",
+    "db_path_after_home": ".fsin_parser/pages.db",
     "xpath_request": "//div[@class='l-content-holder']"
 }

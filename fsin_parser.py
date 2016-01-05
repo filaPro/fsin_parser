@@ -11,6 +11,7 @@ import HTMLParser
 from datetime import datetime
 import time
 import threading
+import os.path
 
 class WebApplication:
     def __init__(self):
@@ -75,7 +76,7 @@ class FsinParser:
         with open(self.json_name, 'r') as f:
             self.json = json.load(f)
             f.close()
-        self.db = lite.connect(self.json['db_name'], check_same_thread = False)
+        self.db = lite.connect(os.path.join(os.path.expanduser('~'), self.json['db_path_after_home']), check_same_thread = False)
         self.db.text_factory = str
         self.cursor = self.db.cursor()
         self.status_string = '__init__'
