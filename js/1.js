@@ -22,8 +22,8 @@ $(document).ready(function() {
 $(document).on('click', '#delete_url', function() {
     $.post('/rm_url_from_list', {'id': $(this).attr('param')}, function(data) {
         console.log(data)
+        window.location.reload();
     })
-    window.location.reload();
 })
 
 $(document).on('click', '#get_updates', function() {
@@ -71,10 +71,10 @@ $(document).on('click', '#add_url_button', function() {
     if (urlregex.test(url))
         $.post('/add_url', {'url': url}, function(data){
             console.log(data)
+            window.location.reload()
         })
     else
         alert('Ссылка введена некоррректно.')
-    window.location.reload()
 })
 
 $(document).on('click', '#get_status_string', function() {
